@@ -437,8 +437,13 @@ impl VMWrapper {
                                 line,
                                 function: msg,
                             });
+                        },
+                        WrenError::Compile(module, line, msg) => {
+                            panic!("wren err: {}, {}, {}", module, line, msg)
                         }
-                        _ => unreachable!(),
+                        // _ => {
+                        //     unreachable!()
+                        // },
                     }
                 }
                 Err(VMError::Runtime { error, frames })

@@ -1,8 +1,10 @@
+use std::io::Write;
+
 use proc_macro2::Span;
 use quote::{quote, quote_spanned, ToTokens};
 use syn::{
     braced, parse::Parse, parse_macro_input, parse_quote, punctuated::Punctuated, spanned::Spanned,
-    Data, DeriveInput, ImplItem, ImplItemFn, ReturnType, Token, Type,
+    Data, DeriveInput, ImplItem, ImplItemFn, ReturnType, Token, Type, Visibility,
 };
 
 fn generate_wrapper_type_name(name: &syn::Ident) -> syn::Ident {
@@ -202,8 +204,9 @@ fn generate_instance(
                     // We can unwrap, because fields are definitely named
                     let name = f.ident.as_ref().unwrap();
                     let ty = &f.ty;
+                    let vis = &f.vis;
                     quote_spanned! {f.span()=>
-                        #name: #ty
+                        #vis #name: #ty
                     }
                 })
                 .collect();
@@ -481,6 +484,8 @@ pub fn wren_object_derive(stream: proc_macro::TokenStream) -> proc_macro::TokenS
         #vis #wrapper_type
     };
 
+    println!("--- wren_object_derive -----------------------------");
+    writeln!(std::io::stdout(), "{}", expanded);
     proc_macro::TokenStream::from(expanded)
 }
 
@@ -495,6 +500,8 @@ struct WrenImplFnAttrs {
     instance: bool,
     getter: bool,
     setter: bool,
+
+    ignore: bool, // Alex: I added this
 
     object: Vec<syn::Ident>,
 }
@@ -1174,7 +1181,7 @@ impl WrenObjectImpl {
         let others: Vec<_> = self
             .items
             .iter()
-            .filter(|fi| !fi.attrs.constructor && !fi.attrs.allocator)
+            .filter(|fi| !fi.attrs.ignore && !fi.attrs.constructor && !fi.attrs.allocator)
             .cloned()
             .filter_map(|func| -> Option<WrenImplValidFn> {
                 match (&self.ty, func).try_into() {
@@ -1302,7 +1309,6 @@ pub fn wren_impl(
             }
         }
     };
-
     let function_decls = wren_object_impl.others.iter().map(|func| {
         let name = func.source_name();
         let wrapper_name = syn::Ident::new(
@@ -1501,7 +1507,8 @@ pub fn wren_impl(
             }
         }
     };
-
+    println!("--- wren_impl -----------------------------");
+    writeln!(std::io::stdout(), "{}", expanded);
     proc_macro::TokenStream::from(expanded)
 }
 
@@ -1599,6 +1606,8 @@ pub fn wren_module(stream: proc_macro::TokenStream) -> proc_macro::TokenStream {
             }
         }
     };
-
+    
+    println!("--- wren_module -----------------------------");
+    writeln!(std::io::stdout(), "{}", expanded);
     proc_macro::TokenStream::from(expanded)
 }
